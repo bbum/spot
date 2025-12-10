@@ -237,10 +237,7 @@ final class MCPServer {
     // MARK: - Tools List
 
     private func handleToolsList(_ request: JSONRPCRequest) -> JSONRPCResponse {
-        // Compact tool description - all docs in description field to minimize tokens
-        let searchDesc = """
-Spotlight search. Query: @name:*.swift @content:TODO @kind:folder @type:public.swift-source @mod:7 @size:>1M (or raw MDQuery). Returns path|size|date.
-"""
+        let searchDesc = "Spotlight search. Query: @name:*.swift @content:TODO @kind:folder @type:public.swift-source @mod:7 @size:>1M (or raw MDQuery). fmt: compact|full|paths|count."
         let tools: JSONValue = .object([
             "tools": .array([
                 .object([
@@ -254,18 +251,6 @@ Spotlight search. Query: @name:*.swift @content:TODO @kind:folder @type:public.s
                             "n": .object(["type": .string("integer")]),
                             "sort": .object(["type": .string("string")]),
                             "fmt": .object(["type": .string("string")])
-                        ]),
-                        "required": .array([.string("q")])
-                    ])
-                ]),
-                .object([
-                    "name": .string("count"),
-                    "description": .string("Count matching files. Same query syntax as search."),
-                    "inputSchema": .object([
-                        "type": .string("object"),
-                        "properties": .object([
-                            "q": .object(["type": .string("string")]),
-                            "in": .object(["type": .string("string")])
                         ]),
                         "required": .array([.string("q")])
                     ])
@@ -301,8 +286,6 @@ Spotlight search. Query: @name:*.swift @content:TODO @kind:folder @type:public.s
             switch name {
             case "search":
                 result = try await executeSearch(args)
-            case "count":
-                result = try await executeCount(args)
             case "meta":
                 result = try await executeMetadata(args)
             default:
@@ -358,6 +341,12 @@ Spotlight search. Query: @name:*.swift @content:TODO @kind:folder @type:public.s
             }
         }
 
+        // Handle count format separately - doesn't need full results
+        if format == "count" {
+            let count = try await executor.count(query: query, scopes: scopes)
+            return "\(count)"
+        }
+
         let results = try await executor.execute(
             query: query,
             scopes: scopes,
@@ -374,18 +363,6 @@ Spotlight search. Query: @name:*.swift @content:TODO @kind:folder @type:public.s
         default: // compact
             return results.map(\.compact).joined(separator: "\n")
         }
-    }
-
-    private func executeCount(_ args: [String: JSONValue]) async throws -> String {
-        guard let queryInput = args["q"]?.stringValue else {
-            throw NSError(domain: "mdagent", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing query parameter 'q'"])
-        }
-
-        let query = parseQueryShorthand(queryInput)
-        let scopes = args["in"]?.stringValue?.split(separator: ",").map(String.init)
-
-        let count = try await executor.count(query: query, scopes: scopes)
-        return "\(count)"
     }
 
     private func executeMetadata(_ args: [String: JSONValue]) async throws -> String {
