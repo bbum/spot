@@ -237,69 +237,46 @@ final class MCPServer {
     // MARK: - Tools List
 
     private func handleToolsList(_ request: JSONRPCRequest) -> JSONRPCResponse {
+        // Compact tool description - all docs in description field to minimize tokens
+        let searchDesc = """
+Spotlight search. Query: @name:*.swift @content:TODO @kind:folder @type:public.swift-source @mod:7 @size:>1M (or raw MDQuery). Returns path|size|date.
+"""
         let tools: JSONValue = .object([
             "tools": .array([
-                // Main search tool - minimal schema
                 .object([
                     "name": .string("search"),
-                    "description": .string("Spotlight search. Returns paths matching query."),
+                    "description": .string(searchDesc),
                     "inputSchema": .object([
                         "type": .string("object"),
                         "properties": .object([
-                            "q": .object([
-                                "type": .string("string"),
-                                "description": .string("MDQuery string or shorthand: @name:*.swift @content:TODO @kind:folder @type:public.swift-source @mod:7 @size:>1M")
-                            ]),
-                            "in": .object([
-                                "type": .string("string"),
-                                "description": .string("Search scope path(s), comma-separated")
-                            ]),
-                            "n": .object([
-                                "type": .string("integer"),
-                                "description": .string("Max results (default 100)")
-                            ]),
-                            "sort": .object([
-                                "type": .string("string"),
-                                "description": .string("Sort: name|date|size|created (prefix - for desc)")
-                            ]),
-                            "fmt": .object([
-                                "type": .string("string"),
-                                "description": .string("Output: compact|full|paths (default compact)")
-                            ])
+                            "q": .object(["type": .string("string")]),
+                            "in": .object(["type": .string("string")]),
+                            "n": .object(["type": .string("integer")]),
+                            "sort": .object(["type": .string("string")]),
+                            "fmt": .object(["type": .string("string")])
                         ]),
                         "required": .array([.string("q")])
                     ])
                 ]),
-                // Count tool
                 .object([
                     "name": .string("count"),
-                    "description": .string("Count matching files without returning paths."),
+                    "description": .string("Count matching files. Same query syntax as search."),
                     "inputSchema": .object([
                         "type": .string("object"),
                         "properties": .object([
-                            "q": .object([
-                                "type": .string("string"),
-                                "description": .string("Query (same format as search)")
-                            ]),
-                            "in": .object([
-                                "type": .string("string"),
-                                "description": .string("Search scope path(s)")
-                            ])
+                            "q": .object(["type": .string("string")]),
+                            "in": .object(["type": .string("string")])
                         ]),
                         "required": .array([.string("q")])
                     ])
                 ]),
-                // Metadata tool
                 .object([
                     "name": .string("meta"),
                     "description": .string("Get file metadata via Spotlight."),
                     "inputSchema": .object([
                         "type": .string("object"),
                         "properties": .object([
-                            "path": .object([
-                                "type": .string("string"),
-                                "description": .string("File path")
-                            ])
+                            "path": .object(["type": .string("string")])
                         ]),
                         "required": .array([.string("path")])
                     ])
